@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dex Trades</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      header > h1 {
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        font-weight: 600;
+      }
+
+      input,
+      button {
+        font: inherit;
+        padding: 0.65rem 0.8rem;
+        border-radius: 0.5rem;
+        border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+        background: color-mix(in srgb, currentColor 5%, transparent);
+        color: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      pre {
+        margin: 0;
+        padding: 1rem;
+        background: color-mix(in srgb, currentColor 8%, transparent);
+        border-radius: 0.75rem;
+        overflow-x: auto;
+        font-size: 0.85rem;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .error {
+        color: #c0392b;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Dex Trades API Explorer</h1>
+      <p>Interact with the Dex Trades backend using the API key stored locally.</p>
+    </header>
+
+    <main>
+      <label>
+        Endpoint
+        <input id="endpoint" type="text" placeholder="/trades" />
+      </label>
+
+      <label>
+        Query (JSON object)
+        <input id="query" type="text" placeholder='{"limit": 5}' />
+      </label>
+
+      <div>
+        <button id="fetch">Send request</button>
+      </div>
+
+      <section>
+        <h2>Response</h2>
+        <pre id="output" class="hidden"></pre>
+        <p id="error" class="error hidden"></p>
+      </section>
+    </main>
+
+    <script>
+      const API_BASE = window.localStorage.getItem("apiBase") ?? "http://localhost:3000/";
+      const API_KEY = window.localStorage.getItem("apiKey") ?? "demo";
+
+      function buildUrl(endpoint, params = {}) {
+        const url = new URL(endpoint, API_BASE);
+        Object.entries(params).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+          const normalizedValue = Array.isArray(value) ? value.join(",") : value;
+          url.searchParams.set(key, normalizedValue);
+        });
+        return url.toString();
+      }
+
+      async function fetchJson(endpoint, { params, headers, ...options } = {}) {
+        const url = buildUrl(endpoint, params);
+        const requestHeaders = new Headers(headers ?? {});
+        requestHeaders.set("Accept", "application/json");
+        requestHeaders.set("Authorization", `Bearer ${API_KEY}`);
+
+        const response = await fetch(url, {
+          ...options,
+          headers: requestHeaders,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+        }
+
+        if (response.status === 204) {
+          return null;
+        }
+
+        return response.json();
+      }
+
+      async function handleFetch() {
+        const endpointInput = document.getElementById("endpoint");
+        const queryInput = document.getElementById("query");
+        const output = document.getElementById("output");
+        const error = document.getElementById("error");
+
+        output.classList.add("hidden");
+        error.classList.add("hidden");
+
+        let params = undefined;
+        if (queryInput.value.trim().length > 0) {
+          try {
+            params = JSON.parse(queryInput.value);
+          } catch (parseError) {
+            error.textContent = `Unable to parse query JSON: ${parseError.message}`;
+            error.classList.remove("hidden");
+            return;
+          }
+        }
+
+        try {
+          const data = await fetchJson(endpointInput.value || "/", { params });
+          output.textContent = JSON.stringify(data, null, 2);
+          output.classList.remove("hidden");
+        } catch (requestError) {
+          error.textContent = requestError.message;
+          error.classList.remove("hidden");
+        }
+      }
+
+      document.getElementById("fetch").addEventListener("click", handleFetch);
+    </script>
+  </body>
+</html>
