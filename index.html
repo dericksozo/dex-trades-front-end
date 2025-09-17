@@ -713,8 +713,7 @@
     const globalError = document.getElementById('global-error');
 
     function buildUrl(endpoint, params = {}) {
-      const url = new URL(API_BASE + endpoint);
-      url.searchParams.set('api_key', API_KEY);
+      const url = new URL(endpoint, API_BASE);
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           url.searchParams.set(key, value);
@@ -726,7 +725,10 @@
     async function fetchJson(endpoint, params = {}) {
       try {
         const response = await fetch(buildUrl(endpoint, params), {
-          headers: { 'Accept': 'application/json' },
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
           mode: 'cors'
         });
         if (!response.ok) {
