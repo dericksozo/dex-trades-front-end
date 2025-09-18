@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DexTrades Live Monitor</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f9fafb;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #7c3aed;
+      --accent-soft: rgba(124, 58, 237, 0.12);
+      --border: #e5e7eb;
+      --positive: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 1.75rem 3vw 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .brand-badge {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 0.4rem 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700;
+    }
+
+    .subheadline {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+      background: rgba(124, 58, 237, 0.06);
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+      background: rgba(124, 58, 237, 0.12);
+      border-color: rgba(124, 58, 237, 0.15);
+    }
+
+    main {
+      padding: 1.5rem 3vw 4rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    section {
+      display: none;
+      animation: fade 0.3s ease;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      font-weight: 700;
+    }
+
+    .dex-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .chain-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.4rem 1.6rem;
+    }
+
+    .chain-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .chain-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .chain-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .dex-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) 1fr minmax(140px, 160px) minmax(100px, 140px);
+      gap: 1rem;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .dex-row:first-of-type {
+      border-top: none;
+    }
+
+    .dex-name {
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--accent);
+    }
+
+    .activity-bar {
+      height: 8px;
+      background: rgba(124, 58, 237, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .activity-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, rgba(124,58,237,0.8), rgba(236, 72, 153, 0.8));
+      border-radius: inherit;
+    }
+
+    .dex-stats {
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .activity-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .activity-high {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--positive);
+    }
+
+    .activity-medium {
+      background: rgba(59, 130, 246, 0.12);
+      color: #2563eb;
+    }
+
+    .activity-low {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+    }
+
+    .activity-idle {
+      background: rgba(17, 24, 39, 0.08);
+      color: var(--muted);
+    }
+
+    .dex-tabs {
+      display: flex;
+      gap: 0.6rem;
+      overflow-x: auto;
+      padding-bottom: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .dex-tab {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 0.55rem 0.9rem;
+      background: var(--panel);
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .dex-tab:hover {
+      color: var(--accent);
+      border-color: rgba(124, 58, 237, 0.2);
+    }
+
+    .dex-tab.active {
+      color: var(--accent);
+      background: rgba(124, 58, 237, 0.14);
+      border-color: rgba(124, 58, 237, 0.3);
+    }
+
+    .dex-detail-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    .dex-detail-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .dex-detail-header h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+    }
+
+    .dex-detail-sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items: center;
+    }
+
+    .select {
+      appearance: none;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 0.55rem 2.2rem 0.55rem 0.9rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"%3E%3Cpath fill="%236b7280" d="M4.47 6.97a.75.75 0 0 1 1.06 0L8 9.44l2.47-2.47a.75.75 0 0 1 1.06 1.06L8.53 10.56a.75.75 0 0 1-1.06 0L4.47 8.03a.75.75 0 0 1 0-1.06Z"/%3E%3C/svg%3E') no-repeat right 0.8rem center / 16px;
+      min-width: 180px;
+    }
+
+    .inline-stat-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .inline-stat {
+      background: rgba(124, 58, 237, 0.06);
+      border-radius: 16px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .inline-stat strong {
+      font-size: 1.1rem;
+    }
+
+    .trade-feed {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .trade-feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trade-feed-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .trade-feed-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .trade-feed-table thead {
+      background: rgba(17, 24, 39, 0.04);
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .trade-feed-table th,
+    .trade-feed-table td {
+      padding: 0.75rem 1.4rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trade-feed-table tbody tr:hover {
+      background: rgba(124, 58, 237, 0.04);
+    }
+
+    .tx-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .tx-link:hover {
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .liquidity-grid {
+      display: grid;
+      gap: 1.2rem;
+    }
+
+    .liquidity-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .leaderboard {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .leaderboard-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .leaderboard-row:last-child {
+      border-bottom: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+      background: rgba(17, 24, 39, 0.06);
+      color: var(--muted);
+    }
+
+    .about-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.8rem;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 680px;
+    }
+
+    a.inline-link {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    a.inline-link:hover {
+      text-decoration: underline;
+    }
+
+    .error-banner {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      display: none;
+    }
+
+    .error-banner.visible {
+      display: block;
+    }
+
+    @media (max-width: 960px) {
+      header {
+        padding: 1.5rem 5vw 1.2rem;
+      }
+
+      main {
+        padding: 1.2rem 5vw 3rem;
+      }
+
+      .dex-row {
+        grid-template-columns: 160px 1fr;
+        grid-template-areas:
+          "name name"
+          "bar bar"
+          "stat activity";
+      }
+
+      .dex-name { grid-area: name; }
+      .activity-bar { grid-area: bar; }
+      .dex-stats { grid-area: stat; }
+      .dex-activity { grid-area: activity; }
+
+      .trade-feed-table {
+        font-size: 0.85rem;
+      }
+
+      .trade-feed-table th,
+      .trade-feed-table td {
+        padding: 0.65rem 0.9rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .select {
+        width: 100%;
+      }
+
+      .trade-feed-table thead {
+        display: none;
+      }
+
+      .trade-feed-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+        border-bottom: 1px solid var(--border);
+        padding: 0.8rem 1rem;
+      }
+
+      .trade-feed-table td {
+        border: none;
+        padding: 0;
+      }
+
+      .trade-feed-table td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.15rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-badge">DexTrades · Live</span>
+      <div>
+        <h1>Real-Time DEX Intelligence</h1>
+        <p class="subheadline">A minimal dashboard showcasing on-chain swaps from every supported decentralized exchange.</p>
+      </div>
+    </div>
+    <nav id="main-nav">
+      <button class="nav-link active" data-section="overview">Overview</button>
+      <button class="nav-link" data-section="dex">DEX Streams</button>
+      <button class="nav-link" data-section="liquidity">Liquidity Pulse</button>
+      <button class="nav-link" data-section="about">About</button>
+    </nav>
+  </header>
+  <main>
+    <div id="global-error" class="error-banner"></div>
+
+    <section id="overview" class="active">
+      <div class="stats-grid" id="overview-stats">
+        <!-- Stats populated via JS -->
+      </div>
+      <div class="dex-groups" id="overview-groups">
+        <!-- Chain groups inserted here -->
+      </div>
+    </section>
+
+    <section id="dex">
+      <div class="dex-tabs" id="dex-tabs">
+        <!-- dynamic dex buttons -->
+      </div>
+      <div class="dex-detail-panel">
+        <div class="dex-detail-header">
+          <h2 id="dex-title">Select a DEX</h2>
+          <p class="dex-detail-sub" id="dex-sub">Choose a protocol above to explore live swaps and cross-chain activity.</p>
+        </div>
+        <div class="filters">
+          <label>
+            <select id="chain-filter" class="select" disabled>
+              <option value="all">All chains</option>
+            </select>
+          </label>
+          <div class="inline-stat-group" id="dex-stat-line">
+            <!-- inline stats -->
+          </div>
+        </div>
+        <div class="trade-feed">
+          <div class="trade-feed-header">
+            <h3>Live Trades</h3>
+            <span class="pill" id="trade-refresh-pill">Updating…</span>
+          </div>
+          <div id="trade-table-wrapper">
+            <table class="trade-feed-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Pair</th>
+                  <th>Amounts</th>
+                  <th>Chain</th>
+                  <th>DEX</th>
+                  <th>Tx</th>
+                </tr>
+              </thead>
+              <tbody id="trade-feed-body">
+                <tr>
+                  <td colspan="6" class="empty-state">Select a DEX to begin streaming live trades.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="liquidity">
+      <div class="liquidity-grid" id="liquidity-grid">
+        <!-- cards inserted here -->
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="about-card">
+        <h2>Powered by SIM IDX</h2>
+        <p>DexTrades showcases streaming swaps indexed in real time by <a class="inline-link" href="https://sim.dune.com" target="_blank" rel="noopener">SIM IDX</a>. Every metric on this dashboard is generated directly from on-chain activity fetched from the public Dex Trades API.</p>
+        <p>All requests are served from <code>cb546b6e70-a19f596caf.idx.sim.io</code> with sub-second ingestion of trades across Ethereum, Base, Arbitrum, Optimism, Unichain, and more. The front end is intentionally framework-free – just HTML, CSS, and vanilla JavaScript – to demonstrate how quickly you can visualize on-chain flows without additional tooling.</p>
+        <p>Want to dig deeper? Explore the source on <a class="inline-link" href="https://github.com/sim-protocol/dex-trades-front-end" target="_blank" rel="noopener">GitHub</a> and remix this UI with your own analytics or custom styling.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = 'https://cb546b6e70-a19f596caf.idx.sim.io';
+    const API_KEY = 'sim_nn0v2h8vMoQ9rp4R3oN7rcDK6H0hCgE0';
+    const REFRESH_INTERVAL_OVERVIEW = 20000;
+    const REFRESH_INTERVAL_TRADES = 5000;
+
+    const state = {
+      dexes: [],
+      summary: [],
+      status: [],
+      currentDex: null,
+      currentChain: 'all',
+      tradeCursor: null,
+      trades: []
+    };
+
+    const chainNames = {
+      1: 'Ethereum',
+      10: 'Optimism',
+      56: 'BSC',
+      137: 'Polygon',
+      324: 'zkSync Era',
+      8453: 'Base',
+      42161: 'Arbitrum',
+      11155111: 'Sepolia',
+      1301: 'Unichain'
+    };
+
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('main section');
+    const overviewStats = document.getElementById('overview-stats');
+    const overviewGroups = document.getElementById('overview-groups');
+    const dexTabs = document.getElementById('dex-tabs');
+    const chainFilter = document.getElementById('chain-filter');
+    const dexTitle = document.getElementById('dex-title');
+    const dexSub = document.getElementById('dex-sub');
+    const dexStatLine = document.getElementById('dex-stat-line');
+    const tradeFeedBody = document.getElementById('trade-feed-body');
+    const tradeRefreshPill = document.getElementById('trade-refresh-pill');
+    const liquidityGrid = document.getElementById('liquidity-grid');
+    const globalError = document.getElementById('global-error');
+
+    function buildUrl(endpoint, params = {}) {
+      const url = new URL(endpoint, API_BASE);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, value);
+        }
+      });
+      return url.toString();
+    }
+
+    async function fetchJson(endpoint, params = {}) {
+      try {
+        const response = await fetch(buildUrl(endpoint, params), {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
+          mode: 'cors'
+        });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        showGlobalError(`Failed to reach DexTrades API (${error.message}). Data may be stale.`);
+        console.error('API error', error);
+        return null;
+      }
+    }
+
+    function clearGlobalError() {
+      globalError.classList.remove('visible');
+      globalError.textContent = '';
+    }
+
+    function showGlobalError(message) {
+      globalError.textContent = message;
+      globalError.classList.add('visible');
+    }
+
+    function switchSection(sectionId) {
+      sections.forEach(section => {
+        section.classList.toggle('active', section.id === sectionId);
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.section === sectionId);
+      });
+    }
+
+    function formatNumber(num) {
+      if (num === null || num === undefined || Number.isNaN(num)) return '—';
+      if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + 'B';
+      if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toLocaleString();
+    }
+
+    function formatTimeAgo(timestamp) {
+      if (!timestamp) return '—';
+      const now = Date.now();
+      const diff = Math.max(0, now - timestamp * 1000);
+      const minutes = Math.floor(diff / 60000);
+      if (minutes < 1) {
+        const seconds = Math.floor(diff / 1000);
+        return seconds <= 5 ? 'just now' : `${seconds}s ago`;
+      }
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    }
+
+    function activityClass(trades5m) {
+      if (trades5m >= 200) return 'activity-high';
+      if (trades5m >= 40) return 'activity-medium';
+      if (trades5m > 0) return 'activity-low';
+      return 'activity-idle';
+    }
+
+    async function loadDexList() {
+      const data = await fetchJson('/dexes');
+      if (!data || !Array.isArray(data.result)) return;
+      state.dexes = data.result;
+      renderDexTabs();
+    }
+
+    function renderDexTabs() {
+      dexTabs.innerHTML = '';
+      state.dexes.forEach(dex => {
+        const button = document.createElement('button');
+        button.className = 'dex-tab' + (state.currentDex === dex ? ' active' : '');
+        button.textContent = dex;
+        button.addEventListener('click', () => {
+          selectDex(dex);
+        });
+        dexTabs.appendChild(button);
+      });
+    }
+
+    async function loadOverview() {
+      clearGlobalError();
+      const [summaryData, statusData] = await Promise.all([
+        fetchJson('/summary', { window: 86400 }),
+        fetchJson('/dexes/status', { window: 86400 })
+      ]);
+      if (!summaryData || !statusData) return;
+      state.summary = summaryData.result || [];
+      state.status = statusData.result || [];
+      renderOverview();
+      renderLiquidity();
+      if (state.currentDex) {
+        updateDexStats();
+      }
+    }
+
+    function renderOverview() {
+      const totalTrades = state.summary.reduce((acc, item) => acc + (item.tradesWindow || 0), 0);
+      const activeDexes = state.status.filter(item => item.lastTradeTimestamp && (Date.now()/1000 - item.lastTradeTimestamp) < 600).length;
+      const uniqueDexes = new Set(state.summary.map(item => item.dex)).size;
+      const uniqueChains = new Set(state.summary.map(item => item.chainId)).size;
+      const averageTrades = uniqueDexes ? Math.round(totalTrades / uniqueDexes) : 0;
+
+      overviewStats.innerHTML = `
+        <div class="stat-card">
+          <span class="stat-label">Total Trades (24h)</span>
+          <span class="stat-value">${formatNumber(totalTrades)}</span>
+          <span class="subheadline">Summed across ${uniqueDexes} protocols</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Active DEXes</span>
+          <span class="stat-value">${activeDexes}</span>
+          <span class="subheadline">Trades within the last 10 minutes</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Chains Covered</span>
+          <span class="stat-value">${uniqueChains}</span>
+          <span class="subheadline">Unified under one API</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Avg Trades per DEX</span>
+          <span class="stat-value">${formatNumber(averageTrades)}</span>
+          <span class="subheadline">Based on the last 24 hours</span>
+        </div>
+      `;
+
+      const grouped = state.summary.reduce((acc, item) => {
+        const chain = item.chainId;
+        if (!acc[chain]) acc[chain] = [];
+        acc[chain].push(item);
+        return acc;
+      }, {});
+
+      overviewGroups.innerHTML = '';
+      Object.entries(grouped)
+        .sort((a, b) => {
+          const totalA = a[1].reduce((sum, item) => sum + (item.tradesWindow || 0), 0);
+          const totalB = b[1].reduce((sum, item) => sum + (item.tradesWindow || 0), 0);
+          return totalB - totalA;
+        })
+        .forEach(([chainId, dexes]) => {
+          const totalChainTrades = dexes.reduce((sum, item) => sum + (item.tradesWindow || 0), 0);
+          const maxTrades = Math.max(...dexes.map(item => item.tradesWindow || 0));
+          const chainCard = document.createElement('div');
+          chainCard.className = 'chain-card';
+
+          chainCard.innerHTML = `
+            <div class="chain-header">
+              <div>
+                <div class="chain-title">${chainNames[chainId] || 'Chain ' + chainId}</div>
+                <div class="chain-meta">${dexes.length} dexes · ${formatNumber(totalChainTrades)} swaps</div>
+              </div>
+              <div class="pill">Last 24 hours</div>
+            </div>
+            <div class="chain-body"></div>
+          `;
+
+          const body = chainCard.querySelector('.chain-body');
+          dexes
+            .sort((a, b) => (b.tradesWindow || 0) - (a.tradesWindow || 0))
+            .forEach(item => {
+              const row = document.createElement('div');
+              row.className = 'dex-row';
+              const status = state.status.find(stat => stat.dex === item.dex);
+              const trades24h = item.tradesWindow || 0;
+              const trades5m = item.trades5m || 0;
+              const activity = status ? (Date.now()/1000 - status.lastTradeTimestamp) : Infinity;
+              let tagClass = 'activity-idle';
+              let tagLabel = 'Idle';
+              if (activity < 120) { tagClass = 'activity-high'; tagLabel = 'Streaming'; }
+              else if (activity < 600) { tagClass = 'activity-medium'; tagLabel = 'Warm'; }
+              else if (activity < 3600) { tagClass = 'activity-low'; tagLabel = 'Cooling'; }
+
+              const fillWidth = maxTrades ? Math.max(3, (trades24h / maxTrades) * 100) : 0;
+              row.innerHTML = `
+                <div class="dex-name" data-dex="${item.dex}">${item.dex}</div>
+                <div class="activity-bar"><span class="activity-fill" style="width:${fillWidth}%"></span></div>
+                <div class="dex-stats">
+                  <span>${formatNumber(trades24h)} swaps</span>
+                  <span>${formatNumber(trades5m)} in last 5m</span>
+                </div>
+                <div class="activity-tag ${tagClass} dex-activity">${tagLabel}</div>
+              `;
+
+              row.querySelector('.dex-name').addEventListener('click', () => {
+                selectDex(item.dex, chainId);
+                switchSection('dex');
+              });
+
+              body.appendChild(row);
+            });
+
+          overviewGroups.appendChild(chainCard);
+        });
+    }
+
+    function renderLiquidity() {
+      const totalsByDex = state.summary.reduce((acc, item) => {
+        if (!acc[item.dex]) acc[item.dex] = { trades24h: 0, chains: new Set(), trades5m: 0 };
+        acc[item.dex].trades24h += item.tradesWindow || 0;
+        acc[item.dex].trades5m += item.trades5m || 0;
+        acc[item.dex].chains.add(item.chainId);
+        return acc;
+      }, {});
+
+      const totalsByChain = state.summary.reduce((acc, item) => {
+        if (!acc[item.chainId]) acc[item.chainId] = { trades24h: 0, dexes: new Set() };
+        acc[item.chainId].trades24h += item.tradesWindow || 0;
+        acc[item.chainId].dexes.add(item.dex);
+        return acc;
+      }, {});
+
+      const topDexes = Object.entries(totalsByDex)
+        .map(([dex, stats]) => ({
+          dex,
+          trades24h: stats.trades24h,
+          chains: stats.chains.size,
+          trades5m: stats.trades5m
+        }))
+        .sort((a, b) => b.trades24h - a.trades24h)
+        .slice(0, 8);
+
+      const topChains = Object.entries(totalsByChain)
+        .map(([chainId, stats]) => ({
+          chainId: Number(chainId),
+          trades24h: stats.trades24h,
+          dexes: stats.dexes.size
+        }))
+        .sort((a, b) => b.trades24h - a.trades24h)
+        .slice(0, 6);
+
+      liquidityGrid.innerHTML = `
+        <div class="liquidity-card">
+          <h3>Most Active Protocols</h3>
+          <p class="subheadline">Daily swap count across every chain</p>
+          <div class="leaderboard">
+            ${topDexes.map((dex, index) => `
+              <div class="leaderboard-row">
+                <span>${index + 1}. ${dex.dex}</span>
+                <span>${formatNumber(dex.trades24h)} swaps · ${dex.chains} chains</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="liquidity-card">
+          <h3>Chain Liquidity Pulse</h3>
+          <p class="subheadline">Where trades are currently flowing</p>
+          <div class="leaderboard">
+            ${topChains.map((chain, index) => `
+              <div class="leaderboard-row">
+                <span>${index + 1}. ${chainNames[chain.chainId] || 'Chain ' + chain.chainId}</span>
+                <span>${formatNumber(chain.trades24h)} swaps · ${chain.dexes} dexes</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="liquidity-card">
+          <h3>Activity Snapshot</h3>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Top DEX</span>
+              <span class="stat-value">${topDexes[0] ? topDexes[0].dex : '—'}</span>
+              <span class="subheadline">${topDexes[0] ? formatNumber(topDexes[0].trades24h) + ' swaps' : 'Awaiting data'}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Fastest Chain</span>
+              <span class="stat-value">${topChains[0] ? (chainNames[topChains[0].chainId] || 'Chain ' + topChains[0].chainId) : '—'}</span>
+              <span class="subheadline">${topChains[0] ? formatNumber(topChains[0].trades24h) + ' swaps' : 'Awaiting data'}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Protocols Reporting</span>
+              <span class="stat-value">${Object.keys(totalsByDex).length}</span>
+              <span class="subheadline">In the last 24 hours</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Chains Active</span>
+              <span class="stat-value">${Object.keys(totalsByChain).length}</span>
+              <span class="subheadline">With detected swaps</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectDex(dex, chainId = 'all') {
+      state.currentDex = dex;
+      state.currentChain = chainId === undefined ? 'all' : chainId;
+      state.tradeCursor = null;
+      state.trades = [];
+      updateDexUI();
+      renderDexTabs();
+      updateHistory();
+      updateDexStats();
+      loadTrades();
+    }
+
+    function updateHistory() {
+      if (!state.currentDex) return;
+      const chainPart = state.currentChain && state.currentChain !== 'all' ? `/${state.currentChain}` : '';
+      const newPath = `/dex/${encodeURIComponent(state.currentDex)}${chainPart}`;
+      if (window.location.pathname !== newPath) {
+        history.pushState({ dex: state.currentDex, chain: state.currentChain }, '', newPath);
+      }
+    }
+
+    function restoreFromLocation() {
+      const path = window.location.pathname;
+      const dexMatch = path.match(/\/dex\/([^/]+)(?:\/(\d+))?/);
+      if (dexMatch) {
+        const [, dex, chain] = dexMatch;
+        state.currentDex = decodeURIComponent(dex);
+        state.currentChain = chain ? Number(chain) : 'all';
+        switchSection('dex');
+        updateDexUI();
+        renderDexTabs();
+        updateDexStats();
+        loadTrades();
+      }
+    }
+
+    function updateDexUI() {
+      if (!state.currentDex) {
+        dexTitle.textContent = 'Select a DEX';
+        dexSub.textContent = 'Choose a protocol above to explore live swaps and cross-chain activity.';
+        chainFilter.innerHTML = '<option value="all">All chains</option>';
+        chainFilter.disabled = true;
+        tradeFeedBody.innerHTML = '<tr><td colspan="6" class="empty-state">Select a DEX to begin streaming live trades.</td></tr>';
+        return;
+      }
+
+      dexTitle.textContent = state.currentDex;
+      dexSub.textContent = 'Monitoring swaps as they settle on-chain';
+
+      const availableChains = state.summary
+        .filter(item => item.dex === state.currentDex)
+        .map(item => item.chainId);
+      const uniqueChains = Array.from(new Set(availableChains));
+
+      chainFilter.innerHTML = '<option value="all">All chains</option>' +
+        uniqueChains.map(chainId => `<option value="${chainId}" ${String(state.currentChain) === String(chainId) ? 'selected' : ''}>${chainNames[chainId] || 'Chain ' + chainId}</option>`).join('');
+      chainFilter.disabled = uniqueChains.length === 0;
+      chainFilter.value = state.currentChain === 'all' ? 'all' : String(state.currentChain);
+    }
+
+    function updateDexStats() {
+      if (!state.currentDex) return;
+      const relevant = state.summary.filter(item => item.dex === state.currentDex);
+      const filtered = state.currentChain === 'all' ? relevant : relevant.filter(item => item.chainId === Number(state.currentChain));
+      const trades24h = filtered.reduce((sum, item) => sum + (item.tradesWindow || 0), 0);
+      const trades5m = filtered.reduce((sum, item) => sum + (item.trades5m || 0), 0);
+      const chainsActive = new Set(relevant.map(item => item.chainId)).size;
+      const lastTradeTimestamp = (() => {
+        const status = state.status.find(item => item.dex === state.currentDex);
+        return status ? status.lastTradeTimestamp : null;
+      })();
+
+      dexStatLine.innerHTML = `
+        <div class="inline-stat">
+          <span class="subheadline">24h Swaps</span>
+          <strong>${formatNumber(trades24h)}</strong>
+        </div>
+        <div class="inline-stat">
+          <span class="subheadline">5m Velocity</span>
+          <strong>${formatNumber(trades5m)}</strong>
+        </div>
+        <div class="inline-stat">
+          <span class="subheadline">Chains Active</span>
+          <strong>${chainsActive}</strong>
+        </div>
+        <div class="inline-stat">
+          <span class="subheadline">Last Activity</span>
+          <strong>${formatTimeAgo(lastTradeTimestamp)}</strong>
+        </div>
+      `;
+    }
+
+    async function loadTrades() {
+      if (!state.currentDex) return;
+      tradeRefreshPill.textContent = 'Syncing…';
+      const params = {
+        dexes: state.currentDex,
+        limit: 50,
+        fields: 'full'
+      };
+      if (state.currentChain !== 'all') {
+        params.chainIds = state.currentChain;
+      }
+      if (state.tradeCursor) {
+        params.beforeTs = state.tradeCursor.timestamp;
+        params.beforeHash = state.tradeCursor.hash;
+      }
+      const data = await fetchJson('/trades', params);
+      if (!data) {
+        tradeRefreshPill.textContent = 'Error';
+        return;
+      }
+
+      const trades = data.result || [];
+      if (!state.tradeCursor && trades.length > 0) {
+        state.trades = trades;
+      } else if (trades.length > 0) {
+        state.trades = [...trades, ...state.trades].slice(0, 100);
+      }
+      if (trades.length > 0) {
+        const last = trades[trades.length - 1];
+        state.tradeCursor = {
+          timestamp: last.blockTimestamp,
+          hash: last.transactionHash
+        };
+      }
+      renderTrades();
+      tradeRefreshPill.textContent = state.trades.length ? 'Live' : 'Waiting';
+    }
+
+    function renderTrades() {
+      if (!state.trades.length) {
+        tradeFeedBody.innerHTML = '<tr><td colspan="6" class="empty-state">Waiting for trades…</td></tr>';
+        return;
+      }
+
+      tradeFeedBody.innerHTML = state.trades.slice(0, 40).map(trade => {
+        const fromAmount = formatTokenAmount(trade.fromTokenAmt, trade.fromTokenDecimals);
+        const toAmount = formatTokenAmount(trade.toTokenAmt, trade.toTokenDecimals);
+        return `
+          <tr>
+            <td data-label="Time">${new Date(trade.blockTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+            <td data-label="Pair">${trade.fromTokenSymbol || '—'} → ${trade.toTokenSymbol || '—'}</td>
+            <td data-label="Amounts">${fromAmount} ${trade.fromTokenSymbol || ''} → ${toAmount} ${trade.toTokenSymbol || ''}</td>
+            <td data-label="Chain">${chainNames[trade.chainId] || 'Chain ' + trade.chainId}</td>
+            <td data-label="DEX">${trade.dex}</td>
+            <td data-label="Tx"><a class="tx-link" href="https://explorer.sim.io/tx/${trade.transactionHash}" target="_blank" rel="noopener">View</a></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatTokenAmount(raw, decimals) {
+      if (!raw) return '—';
+      const dec = decimals || 0;
+      if (raw.length <= 15) {
+        const value = Number(raw) / Math.pow(10, dec);
+        if (!Number.isFinite(value)) return '—';
+        if (value >= 1) return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        if (value >= 0.01) return value.toFixed(4);
+        return value.toExponential(2);
+      }
+
+      const padded = raw.padStart(dec + 1, '0');
+      const splitIndex = padded.length - dec;
+      const integerPart = padded.slice(0, splitIndex) || '0';
+      let fractionPart = padded.slice(splitIndex);
+      fractionPart = fractionPart.replace(/0+$/, '');
+      const formattedInteger = integerPart
+        .replace(/^0+(?=\d)/, '')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ',') || '0';
+      if (!fractionPart) return formattedInteger;
+      const trimmedFraction = fractionPart.slice(0, 4);
+      return `${formattedInteger}.${trimmedFraction}`;
+    }
+
+    function setupNav() {
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          switchSection(link.dataset.section);
+          if (link.dataset.section !== 'dex') {
+            history.pushState({}, '', '/' + link.dataset.section);
+          } else if (state.currentDex) {
+            updateHistory();
+          }
+        });
+      });
+
+      chainFilter.addEventListener('change', () => {
+        state.currentChain = chainFilter.value === 'all' ? 'all' : Number(chainFilter.value);
+        state.tradeCursor = null;
+        state.trades = [];
+        updateDexStats();
+        loadTrades();
+        updateHistory();
+      });
+
+      window.addEventListener('popstate', () => {
+        restoreFromLocation();
+      });
+    }
+
+    function scheduleRefresh() {
+      setInterval(loadOverview, REFRESH_INTERVAL_OVERVIEW);
+      setInterval(() => {
+        if (document.getElementById('dex').classList.contains('active') && state.currentDex) {
+          state.tradeCursor = null;
+          loadTrades();
+        }
+      }, REFRESH_INTERVAL_TRADES);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setupNav();
+      await loadDexList();
+      await loadOverview();
+      restoreFromLocation();
+      scheduleRefresh();
+    });
+  </script>
+</body>
+</html>
